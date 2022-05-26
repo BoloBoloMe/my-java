@@ -75,6 +75,7 @@ public class ReentrantLock implements Lock, java.io.Serializable {
     private static final long serialVersionUID = 7373984872572414699L;
     /**
      * Synchronizer providing all implementation mechanics
+     * 重入锁的内部同步器类实例
      */
     private final Sync sync;
 
@@ -95,16 +96,22 @@ public class ReentrantLock implements Lock, java.io.Serializable {
         /**
          * Performs non-fair tryLock.  tryAcquire is implemented in
          * subclasses, but both need nonfair try for trylock method.
+         * <p>
+         * 尝试获取锁的不公平版本实现。如果锁没有被持有，就先看看队列里有没有线程在排队，没有或者自己就是队列的第一个，就尝试获取锁
          */
         final boolean nonfairTryAcquire(int acquires) {
             final Thread current = Thread.currentThread();
+            // 获取当前的锁状态
             int c = getState();
             if (c == 0) {
+                // 执行到这里说明锁当前没有被持有
                 if (compareAndSetState(0, acquires)) {
+                    // 执行到这里说明锁被当前线程抢到了
                     setExclusiveOwnerThread(current);
                     return true;
                 }
             } else if (current == getExclusiveOwnerThread()) {
+                // 执行到这里说明锁已经被持有，而且持有锁的就是当前线程自己！所以这是一次锁重入，递增锁的状态表示重入
                 int nextc = c + acquires;
                 if (nextc < 0) // overflow
                     throw new Error("Maximum lock count exceeded");
@@ -170,6 +177,8 @@ public class ReentrantLock implements Lock, java.io.Serializable {
         /**
          * Performs lock.  Try immediate barge, backing up to normal
          * acquire on failure.
+         * <p>
+         * 不公平锁 —— 不管队列里有没有线程在排队，一上来就尝试抢一下锁，抢不到再调用 {@link super#acquire} (里面又抢了一次锁，抢不到再去排队)
          */
         final void lock() {
             if (compareAndSetState(0, 1))
@@ -196,6 +205,8 @@ public class ReentrantLock implements Lock, java.io.Serializable {
         /**
          * Fair version of tryAcquire.  Don't grant access unless
          * recursive call or no waiters or is first.
+         * <p>
+         * 尝试获取锁的老实人版实现。如果锁没有被持有，就先看看队列里有没有线程在排队，没有或者自己就是队列的第一个，就尝试获取锁
          */
         protected final boolean tryAcquire(int acquires) {
             final Thread current = Thread.currentThread();

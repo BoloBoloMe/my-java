@@ -39,13 +39,14 @@ public abstract class AbstractQueuedSynchronizer
         /**
          * waitStatus value to indicate thread has cancelled
          * <p>
-         * 表示当前节点取消排队了，也就是放弃获取锁了。后继节点在排队过程中如果发现前驱的节点是这个状态，会将前驱节目的前驱节点更新为自己的前驱节点
+         * 表示当前节点取消排队了，也就是放弃获取锁了。后继节点在排队过程中如果发现前驱的节点是这个状态，
+         * 会将前驱节目的前驱节点更新为自己的前驱节点。
          */
         static final int CANCELLED = 1;
         /**
          * waitStatus value to indicate successor's thread needs unparking
          * <p>
-         * 如果当前节点的 waitStatus == SIGNAL, 那表示它的后继节点已经或者正在被挂起,
+         * 如果节点的 waitStatus == SIGNAL, 那表示它的后继节点已经或者正在被挂起,
          * 所以在当前节点放弃获取锁或者释放完锁之后，还需要将后继节点从挂起中唤醒。
          * 从这个状态的用途也不难猜到，它不会是节点自己给自己设置的，而是后继节点在开始挂起时帮自己设置的。
          */
@@ -60,16 +61,31 @@ public abstract class AbstractQueuedSynchronizer
          */
         static final int PROPAGATE = -3;
 
+        /**
+         * 等待状态
+         */
         volatile int waitStatus;
 
 
+        /**
+         * 前驱节点
+         */
         volatile Node prev;
 
+        /**
+         * 后继节点
+         */
         volatile Node next;
 
+        /**
+         * 节点代表的线程
+         */
         volatile Thread thread;
 
 
+        /**
+         * 独占模式下为 null，即等于 {@link this#EXCLUSIVE}，起到标记作用
+         */
         Node nextWaiter;
 
 
@@ -661,7 +677,7 @@ public abstract class AbstractQueuedSynchronizer
         }
     }
 
-    // Main exported methods
+    // Main exported methods ｜ 提供给子类的扩展方法 start
 
     protected boolean tryAcquire(int arg) {
         throw new UnsupportedOperationException();
@@ -682,6 +698,8 @@ public abstract class AbstractQueuedSynchronizer
     protected boolean isHeldExclusively() {
         throw new UnsupportedOperationException();
     }
+
+    // 提供给子类的扩展方法 end
 
 
     public final void acquire(int arg) {
