@@ -1,7 +1,7 @@
 package com.example.workspace.thread;
 
 /**
- * Creator: L9214
+ * Creator: luojingyan
  * Date:2022/5/25 0:12
  */
 public class ThreadTest {

@@ -9,7 +9,7 @@ public class WorkspaceApplication {
 
     public static void main(String[] args) {
         ConfigurableApplicationContext context = SpringApplication.run(WorkspaceApplication.class, args);
-        System.out.println(context.getClass()==org.springframework.context.annotation.AnnotationConfigApplicationContext.class);
+        System.out.println(context.getClass() == org.springframework.context.annotation.AnnotationConfigApplicationContext.class);
     }
 
 }

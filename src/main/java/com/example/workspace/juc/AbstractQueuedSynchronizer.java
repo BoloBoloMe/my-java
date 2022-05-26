@@ -104,6 +104,10 @@ public abstract class AbstractQueuedSynchronizer
      * initialization, it is modified only via method setHead.  Note:
      * If head exists, its waitStatus is guaranteed not to be
      * CANCELLED.
+     * <p>
+     * 同步队列的头节点，懒加载。 这个字段只会在 {@link this#setHead(Node)} 方法中被修改。
+     * 注意：如果头节点存在，那么它的 waitStatus 属性保证不是 CANCELLED。
+     * 同步队列的头节点是个哑节点，thread 和 prev 属性都为 null。
      */
     private transient volatile Node head;
 

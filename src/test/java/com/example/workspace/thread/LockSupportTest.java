@@ -3,7 +3,7 @@ package com.example.workspace.thread;
 import java.util.concurrent.locks.LockSupport;
 
 /**
- * Creator: L9214
+ * Creator: luojingyan
  * Date:2022/5/25 0:12
  */
 public class LockSupportTest {
