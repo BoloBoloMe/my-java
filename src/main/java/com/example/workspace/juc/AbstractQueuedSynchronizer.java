@@ -7,6 +7,7 @@ import java.util.Collection;
 import java.util.Date;
 import java.util.concurrent.locks.AbstractOwnableSynchronizer;
 import java.util.concurrent.locks.Condition;
+import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.LockSupport;
 
 import sun.misc.Unsafe;
@@ -43,6 +44,7 @@ public abstract class AbstractQueuedSynchronizer
          * 会将前驱节目的前驱节点更新为自己的前驱节点。
          */
         static final int CANCELLED = 1;
+
         /**
          * waitStatus value to indicate successor's thread needs unparking
          * <p>
@@ -51,6 +53,7 @@ public abstract class AbstractQueuedSynchronizer
          * 从这个状态的用途也不难猜到，它不会是节点自己给自己设置的，而是后继节点在开始挂起时帮自己设置的。
          */
         static final int SIGNAL = -1;
+
         /**
          * waitStatus value to indicate thread is waiting on condition
          */
@@ -463,7 +466,7 @@ public abstract class AbstractQueuedSynchronizer
     /**
      * Acquires in exclusive uninterruptible mode for thread already in
      * queue. Used by condition wait methods as well as acquire.
-     * 以独占的方式、不可中断地、不断地尝试获取锁（循环），直至线程成功获取到锁
+     * 以独占模式响应线程中断的方式不断地尝试获取锁，直至成功为止
      *
      * @param node the node 已经添加到队列末尾的接节点
      * @param arg  the acquire argument 节点要将 status 为 arg
@@ -495,7 +498,7 @@ public abstract class AbstractQueuedSynchronizer
                 // part 2. 执行到这里说明线程不在队列头部或者尝试获取锁失败了，检查是否应该挂起当前线程，如果应该便挂起
                 if (shouldParkAfterFailedAcquire(p, node) && parkAndCheckInterrupt()) {
                     // 执行到这里说明线程从 WAITING 状态由于被调用了中断操作 thread.interrupt() 而唤醒，更新下状态位。
-                    // AQS 获取锁的过程是不可中断的，这里不会让当前线程取消获取锁。
+                    // 这个方法获取锁的过程是响应中断的，这里不会让当前线程取消获取锁。
                     interrupted = true;
                 }
 
@@ -702,6 +705,22 @@ public abstract class AbstractQueuedSynchronizer
     // 提供给子类的扩展方法 end
 
 
+    /**
+     * Acquires in exclusive mode, ignoring interrupts.  Implemented
+     * by invoking at least once {@link #tryAcquire},
+     * returning on success.  Otherwise the thread is queued, possibly
+     * repeatedly blocking and unblocking, invoking {@link
+     * #tryAcquire} until success.  This method can be used
+     * to implement method {@link Lock#lock}.
+     * <p>
+     * 在独占模式下获取锁，忽略线程中断的请求。如果方法成功返回了那么说明通过调用 {@link #tryAcquire} 成功获取到了锁。
+     * 如果没有成功获取到锁线程将进行排队，可能会重复进入阻塞和非阻塞状态，在非阻塞状态时调用 {@link #tryAcquire} 直到成功未知。
+     * 这个方法可用于实现  {@link Lock#lock}。
+     *
+     * @param arg the acquire argument.  This value is conveyed to
+     *            {@link #tryAcquire} but is otherwise uninterpreted and
+     *            can represent anything you like.
+     */
     public final void acquire(int arg) {
         if (!tryAcquire(arg) && acquireQueued(addWaiter(Node.EXCLUSIVE), arg)) {
             // 执行到这里说明线程获取到了锁而且还在获取锁的过程中被请求过中断，这里让线程自己调用一下自己的中断方法
@@ -710,6 +729,12 @@ public abstract class AbstractQueuedSynchronizer
         }
     }
 
+    /**
+     * 在独占模式下获取锁，是响应线程中断请求的版本。
+     *
+     * @param arg
+     * @throws InterruptedException
+     */
     public final void acquireInterruptibly(int arg)
             throws InterruptedException {
         if (Thread.interrupted())
@@ -718,7 +743,12 @@ public abstract class AbstractQueuedSynchronizer
             doAcquireInterruptibly(arg);
     }
 
-
+    /**
+     * 在独占模式下获取锁，是响应线程中断请求的版本。并且支持设置超时时间
+     *
+     * @param arg
+     * @throws InterruptedException
+     */
     public final boolean tryAcquireNanos(int arg, long nanosTimeout)
             throws InterruptedException {
         if (Thread.interrupted())

@@ -118,6 +118,7 @@ public class ReentrantLock implements Lock, java.io.Serializable {
                 setState(nextc);
                 return true;
             }
+            // 执行到这里说明其锁被其他线程持有了，当前线程获取失败，返回 false
             return false;
         }
 
@@ -228,6 +229,7 @@ public class ReentrantLock implements Lock, java.io.Serializable {
                 setState(nextc);
                 return true;
             }
+            // 执行到这里说明其锁被其他线程持有了，当前线程获取失败，返回 false
             return false;
         }
     }

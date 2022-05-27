@@ -7,6 +7,7 @@ package com.example.workspace.juc;
 public class AqsUseCase {
     public static void main(String[] args) {
         ReentrantLock lock = new ReentrantLock();
+        lock.newCondition();
         lock.lock();
         try {
             // do something
