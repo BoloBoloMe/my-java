@@ -15,9 +15,7 @@ import java.util.stream.IntStream;
 public class RandomNumber {
     public static void main(String[] args) {
         Set<Integer> set = getRandomNums(999, 1000);
-        System.out.println(set);
-        System.out.println();
-        System.err.println(set.size());
+        System.out.printf("set: %s \nsize: %s ", set, set.size()).println();
     }
 
 
