@@ -581,6 +581,7 @@ public abstract class AbstractQueuedSynchronizer
      * @param arg the acquire argument
      */
     private void doAcquireShared(int arg) {
+        // 和独占模式的低一点不同：添加到阻塞队列里的节点是共享模式的
         final Node node = addWaiter(Node.SHARED);
         boolean failed = true;
         try {
@@ -690,6 +691,12 @@ public abstract class AbstractQueuedSynchronizer
         throw new UnsupportedOperationException();
     }
 
+    /**
+     * @param arg
+     * @return 如果该值小于0，则代表当前线程获取共享锁失败
+     * 如果该值大于0，则代表当前线程获取共享锁成功，并且接下来其他线程尝试获取共享锁的行为很可能成功
+     * 如果该值等于0，则代表当前线程获取共享锁成功，但是接下来其他线程尝试获取共享锁的行为会失败
+     */
     protected int tryAcquireShared(int arg) {
         throw new UnsupportedOperationException();
     }
@@ -772,6 +779,11 @@ public abstract class AbstractQueuedSynchronizer
         return false;
     }
 
+    /**
+     * 获取共享锁
+     *
+     * @param arg
+     */
     public final void acquireShared(int arg) {
         if (tryAcquireShared(arg) < 0)
             doAcquireShared(arg);
