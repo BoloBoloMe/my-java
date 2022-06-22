@@ -1,6 +1,5 @@
 package my.java.util.concurrent;
 
-import java.util.concurrent.CompletableFuture;
 
 /**
  * @author: luojingyan
