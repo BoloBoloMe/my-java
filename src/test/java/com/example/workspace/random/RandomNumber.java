@@ -14,8 +14,17 @@ import java.util.stream.IntStream;
  */
 public class RandomNumber {
     public static void main(String[] args) {
-        Set<Integer> set = getRandomNums(999, 1000);
+        int m = 100000, n = m / 2;
+        // 预热
+        IntStream.range(0, m).forEach(x -> {
+        });
+
+        // 测试
+        long st = System.currentTimeMillis();
+        Set<Integer> set = getRandomNums(n, m);
+        long et = System.currentTimeMillis();
         System.out.printf("set: %s \nsize: %s ", set, set.size()).println();
+        System.out.println((et - st) + "ms");
     }
 
 
