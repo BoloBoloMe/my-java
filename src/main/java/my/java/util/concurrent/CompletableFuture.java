@@ -1,40 +1,5 @@
 package my.java.util.concurrent;
 
-/*
- * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
- *
- * This code is free software; you can redistribute it and/or modify it
- * under the terms of the GNU General Public License version 2 only, as
- * published by the Free Software Foundation.  Oracle designates this
- * particular file as subject to the "Classpath" exception as provided
- * by Oracle in the LICENSE file that accompanied this code.
- *
- * This code is distributed in the hope that it will be useful, but WITHOUT
- * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
- * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
- * version 2 for more details (a copy is included in the LICENSE file that
- * accompanied this code).
- *
- * You should have received a copy of the GNU General Public License version
- * 2 along with this work; if not, write to the Free Software Foundation,
- * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
- *
- * Please contact Oracle, 500 Oracle Parkway, Redwood Shores, CA 94065 USA
- * or visit www.oracle.com if you need additional information or have any
- * questions.
- */
-
-/*
- * This file is available under and governed by the GNU General Public
- * License version 2 only, as published by the Free Software Foundation.
- * However, the following notice accompanied the original version of this
- * file:
- *
- * Written by Doug Lea with assistance from members of JCP JSR-166
- * Expert Group and released to the public domain, as explained at
- * http://creativecommons.org/publicdomain/zero/1.0/
- */
-
 import java.util.concurrent.*;
 import java.util.function.Supplier;
 import java.util.function.Consumer;
@@ -206,8 +171,8 @@ public class CompletableFuture<T> implements Future<T>, CompletionStage<T> {
      * publication.
      */
 
-    volatile Object result;       // Either the result or boxed AltResult
-    volatile Completion stack;    // Top of Treiber stack of dependent actions
+    volatile Object result;       // Either the result or boxed · 操作结果，或者装箱后的 null，或者装箱后的异常结果
+    volatile Completion stack;    // Top of Treiber stack of dependent actions 在当前操作结束后需要被回调的依赖动作栈栈顶
 
     final boolean internalComplete(Object r) { // CAS from null to r
         return UNSAFE.compareAndSwapObject(this, RESULT, null, r);
@@ -219,22 +184,29 @@ public class CompletableFuture<T> implements Future<T>, CompletionStage<T> {
 
     /**
      * Returns true if successfully pushed c onto stack.
+     * Treiber 栈压栈。
+     * 当 c 压入栈顶时返回 true
      */
     final boolean tryPushStack(Completion c) {
+        // 现栈顶
         Completion h = stack;
+        // 将现栈顶更新为 c 的后继
         lazySetNext(c, h);
+        // 将 c 更新为新栈顶
         return UNSAFE.compareAndSwapObject(this, STACK, h, c);
     }
 
     /**
      * Unconditionally pushes c onto stack, retrying if necessary.
+     * <p>
+     * 将 c 压栈（成为新栈顶），重试至成功为止
      */
     final void pushStack(Completion c) {
         do {
         } while (!tryPushStack(c));
     }
 
-    /* ------------- Encoding and decoding outcomes -------------- */
+    /* ------------- Encoding and decoding outcomes 对输出结果进行编码和解码的相关逻辑 -------------- */
 
     static final class AltResult { // See above
         final Throwable ex;        // null only for NIL
@@ -295,12 +267,13 @@ public class CompletableFuture<T> implements Future<T>, CompletionStage<T> {
      * return the given Object r (which must have been the result of a
      * source future) if it is equivalent, i.e. if this is a simple
      * relay of an existing CompletionException.
+     * <p>
+     * 将给定的(非空)异常包装为 CompletionException，除非已经是这个类型的异常，然后将异常装箱后返回。
+     * 当操作返回值 r 已经是个异常装箱实例，并且传入的异常和装箱的异常是同一个实例，那么将返回 r。
      */
     static Object encodeThrowable(Throwable x, Object r) {
-        if (!(x instanceof CompletionException))
-            x = new CompletionException(x);
-        else if (r instanceof AltResult && x == ((AltResult) r).ex)
-            return r;
+        if (!(x instanceof CompletionException)) x = new CompletionException(x);
+        else if (r instanceof AltResult && x == ((AltResult) r).ex) return r;
         return new AltResult(x);
     }
 
@@ -430,9 +403,9 @@ public class CompletableFuture<T> implements Future<T>, CompletionStage<T> {
     }
 
     // Modes for Completion.tryFire. Signedness matters.
-    static final int SYNC = 0;
-    static final int ASYNC = 1;
-    static final int NESTED = -1;
+    static final int SYNC = 0; // 同步模式标识
+    static final int ASYNC = 1; // 异步模式标识
+    static final int NESTED = -1; // 嵌套模式标识，该模式下依赖动作执行完成后不会回调自己 cf 上的依赖动作栈，而是会返回自己的 cf
 
     /**
      * Spins before blocking in waitingGet.
@@ -453,11 +426,15 @@ public class CompletableFuture<T> implements Future<T>, CompletionStage<T> {
     @SuppressWarnings("serial")
     abstract static class Completion extends ForkJoinTask<Void>
             implements Runnable, AsynchronousCompletionTask {
+        /**
+         * Treiber 栈的链表指针。该结构的特点简而言之就是只有栈顶指针的更新是有 cas+重试 保护的
+         */
         volatile Completion next;      // Treiber stack link
 
         /**
          * Performs completion action if triggered, returning a
          * dependent that may need propagation, if one exists.
+         * 执行当前动作。NESTED 模式下会返回动作关联的 cf 实例 （即持有动作执行结果的 cf），且 cf 上的依赖动作栈没有被回调
          *
          * @param mode SYNC, ASYNC, or NESTED
          */
@@ -492,6 +469,8 @@ public class CompletableFuture<T> implements Future<T>, CompletionStage<T> {
     /**
      * Pops and tries to trigger all reachable dependents.  Call only
      * when known to be done.
+     * <p>
+     * 弹栈并触发所有能遍历到的依赖动作。只在当前操作执行完毕（当前操作依赖的 {@link #result} 设置了值）之后调用。
      */
     final void postComplete() {
         /*
@@ -502,17 +481,24 @@ public class CompletableFuture<T> implements Future<T>, CompletionStage<T> {
         CompletableFuture<?> f = this;
         Completion h;
         while ((h = f.stack) != null ||
+                // 当上一个出栈动作的依赖动作栈遍历结束后执行此行：f 被重置为当前动作的 cf，也就是说会继续遍历当前 cf 的依赖动作栈。
+                // 如果当前 cf 的依赖动作栈也遍历结束将退出循环
                 (f != this && (h = (f = this).stack) != null)) {
             CompletableFuture<?> d;
             Completion t;
+            //  Treiber 栈弹栈：使用 cas+重试 将栈顶指针更新为原栈顶的后继
             if (f.casStack(h, t = h.next)) {
+                // 执行到这里说明栈顶元素弹栈成功
                 if (t != null) {
+                    // 执行到这里说明栈顶的后继不为空
                     if (f != this) {
                         pushStack(h);
                         continue;
                     }
                     h.next = null;    // detach
                 }
+                // 以 NESTED 模式执行出栈的动作，该模式下依赖动作执行完成后不会回调自己 cf 的依赖动作栈，而是会返回自己的 cf，
+                // 即 f 被更新成了出栈的动作的 cf —— 当再次回到循环条件语句时，被遍历的是当前出栈动作的 cf 上的依赖动作栈
                 f = (d = h.tryFire(NESTED)) == null ? this : d;
             }
         }
@@ -584,6 +570,7 @@ public class CompletableFuture<T> implements Future<T>, CompletionStage<T> {
 
     /**
      * Pushes the given completion (if it exists) unless done.
+     * Treiber 栈压栈。重试至成功为止
      */
     final void push(UniCompletion<?, ?> c) {
         if (c != null) {
@@ -637,41 +624,75 @@ public class CompletableFuture<T> implements Future<T>, CompletionStage<T> {
         }
     }
 
+    /**
+     * 在当前 cf 上执行 Function 动作
+     *
+     * @param a   依赖的 cf
+     * @param f   被执行的操作
+     * @param c   ？ 可为 null
+     * @param <S> 依赖的 cf 的结果类型
+     * @return true-动作已执行
+     */
     final <S> boolean uniApply(CompletableFuture<S> a,
                                Function<? super S, ? extends T> f,
                                UniApply<S, T> c) {
+        // 依赖的 cf 的结果
         Object r;
+        // 依赖的 cf 抛出的异常
         Throwable x;
+
+        // 空参或者依赖的 cf 尚未完成，不执行操作
         if (a == null || (r = a.result) == null || f == null)
             return false;
+
         tryComplete:
         if (result == null) {
+            //  执行到这里说明当前 cf 尚未完成动作，当时依赖的 cf 已经完成了动作，
+            //  根据依赖的 cf 结果是否是异常来决定是更新当前 cf 的 result 字段还是执行动作。
+
             if (r instanceof AltResult) {
+                // 执行到这里说明依赖的 cf 已经执行完毕
                 if ((x = ((AltResult) r).ex) != null) {
+                    // 执行到这里说明依赖的 cf 以抛出异常的方式完成动作的，当前 cf 也将异常编码后设置到 result 字段
                     completeThrowable(x, r);
+                    // 从这个分支回去将执行至方法末尾——本 cf 已完成
                     break tryComplete;
                 }
+
+                // 执行到这里说明依赖的 cf 是以正常的方式完成动作的
                 r = null;
             }
+
+            // 执行当前 cf 的动作
             try {
                 if (c != null && !c.claim())
                     return false;
                 @SuppressWarnings("unchecked") S s = (S) r;
+                // 执行 Function 并将结果设置到当前 cf
                 completeValue(f.apply(s));
             } catch (Throwable ex) {
+                // Function 执行异常，将异常装箱并设置到当前 cf
                 completeThrowable(ex);
             }
         }
         return true;
     }
 
+    /**
+     * 给当前 cf 添加依赖动作回调
+     */
     private <V> CompletableFuture<V> uniApplyStage(
             Executor e, Function<? super T, ? extends V> f) {
         if (f == null) throw new NullPointerException();
+        // 创建依赖当前 cf 的另一个 cf
         CompletableFuture<V> d = new CompletableFuture<V>();
+        // 如果线程池实例为 null，则在当前线程调用另一个 cf 的 uniApply —— 检查当前 cf 是否完成操作或者抛出异常，如果有就直接在当前线程完成另一个 cf
         if (e != null || !d.uniApply(this, f, null)) {
+            // 执行到这里说明线程池不为 null 或者当前 cf 还没有完成 (d.uniApply == false)，
+            // 将依赖动作包装成 Completion 压入当前 cf 的依赖动作栈，在当前 cf 完成后会回调栈中的动作
             UniApply<T, V> c = new UniApply<T, V>(e, d, this, f);
             push(c);
+            // 为了避免在压栈过程中当前 cf 完成了操作而错过回调，再尝试触发一次依赖动作
             c.tryFire(SYNC);
         }
         return d;
@@ -1752,10 +1773,22 @@ public class CompletableFuture<T> implements Future<T>, CompletionStage<T> {
 
     /* ------------- Zero-input Async forms -------------- */
 
+    /**
+     * 异步 supply 操作提交到线程池之后执行的 Runnable 实现类。
+     * 其他异步操作的 Runnable 实现类大同小异， AsynchronousCompletionTask 接口标记出了这些实现类。
+     */
     @SuppressWarnings("serial")
     static final class AsyncSupply<T> extends ForkJoinTask<Void>
             implements Runnable, AsynchronousCompletionTask {
+
+        /**
+         * 异步操作依赖的 CompletableFuture 实例，操作结果将设置到这个实例中。
+         */
         CompletableFuture<T> dep;
+
+        /**
+         * 异步操作的函数式接口
+         */
         Supplier<T> fn;
 
         AsyncSupply(CompletableFuture<T> dep, Supplier<T> fn) {
@@ -1776,18 +1809,24 @@ public class CompletableFuture<T> implements Future<T>, CompletionStage<T> {
         }
 
         public void run() {
+            // 操作依赖的 CompletableFuture 实例（以下简称 cf）
             CompletableFuture<T> d;
+            // 要执行的操作
             Supplier<T> f;
+            // 操作和 cf 的非空校验
             if ((d = dep) != null && (f = fn) != null) {
                 dep = null;
                 fn = null;
                 if (d.result == null) {
+                    // 当依赖的 cf 实例还没有结果时执行操作并设置到 cf 中
                     try {
                         d.completeValue(f.get());
                     } catch (Throwable ex) {
+                        // 当操作执行发生异常时将异常装箱并设置到 cf 中
                         d.completeThrowable(ex);
                     }
                 }
+                // 操作执行完毕后，遍历并回调 cf 依赖动作栈
                 d.postComplete();
             }
         }
@@ -2015,6 +2054,9 @@ public class CompletableFuture<T> implements Future<T>, CompletionStage<T> {
      * Returns a new CompletableFuture that is asynchronously completed
      * by a task running in the {@link ForkJoinPool#commonPool()} with
      * the value obtained by calling the given Supplier.
+     * <p>
+     * 返回新的 CompletableFuture 实例，并且在线程池中异步执行 supplier，结果将被设置到
+     * {@link CompletableFuture#result}
      *
      * @param supplier a function returning the value to be used
      *                 to complete the returned CompletableFuture
