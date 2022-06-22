@@ -1,4 +1,4 @@
-package com.example.workspace.random;
+package my.java.example.random;
 
 import java.util.HashSet;
 import java.util.Random;

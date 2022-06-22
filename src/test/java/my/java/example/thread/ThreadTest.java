@@ -1,4 +1,4 @@
-package com.example.workspace.thread;
+package my.java.example.thread;
 
 /**
  * Creator: luojingyan

@@ -1,11 +1,9 @@
-package com.example.workspace.redisson;
+package my.java.example.redisson;
 
 import org.junit.jupiter.api.Test;
 import org.redisson.Redisson;
 import org.redisson.api.RLock;
 import org.redisson.api.RedissonClient;
-import org.redisson.api.RedissonReactiveClient;
-import org.redisson.api.RedissonRxClient;
 import org.redisson.config.Config;
 
 import java.util.concurrent.TimeUnit;

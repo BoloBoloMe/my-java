@@ -1,4 +1,4 @@
-package com.example.workspace.threadpool;
+package my.java.example.threadpool;
 
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ForkJoinPool;

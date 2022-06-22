@@ -1,8 +1,6 @@
-package com.example.workspace.margenum;
+package my.java.example.margenum;
 
 import org.junit.jupiter.api.Test;
-
-import java.util.concurrent.locks.AbstractQueuedSynchronizer;
 
 /**
  * Long.MAX_VALUE = 9223372036854775807;

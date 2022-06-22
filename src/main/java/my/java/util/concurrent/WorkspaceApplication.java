@@ -1,4 +1,4 @@
-package com.example.workspace;
+package my.java.util.concurrent;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
