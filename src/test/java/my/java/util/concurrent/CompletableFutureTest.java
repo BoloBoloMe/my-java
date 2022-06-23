@@ -15,7 +15,7 @@ public class CompletableFutureTest {
      * 一元依赖
      */
     @Test
-    public static void uniRefCase() {
+    public void uniRefCase() {
         CompletableFuture<Integer> cf1 = CompletableFuture.supplyAsync(() -> 1);
         // cf2 依赖 cf1
         CompletableFuture<Integer> cf2 = cf1.thenApply(x -> ++x);
@@ -30,7 +30,7 @@ public class CompletableFutureTest {
      * 二元依赖
      */
     @Test
-    public static void biRefCase() {
+    public void biRefCase() {
         CompletableFuture<Integer> cf1 = CompletableFuture.supplyAsync(() -> 1);
         CompletableFuture<Integer> cf2 = CompletableFuture.supplyAsync(() -> 2);
         // cf3 依赖 cf1 和 cf2
@@ -38,16 +38,24 @@ public class CompletableFutureTest {
 
     }
 
-
     /**
      * 多元依赖
      */
     @Test
-    public static void multiRefCase() {
+    public void multiRefCase() {
         CompletableFuture<Integer> cf1 = CompletableFuture.supplyAsync(() -> 1);
         CompletableFuture<Integer> cf2 = CompletableFuture.supplyAsync(() -> 2);
         CompletableFuture<Integer> cf3 = CompletableFuture.supplyAsync(() -> 3);
         // cf4 依赖 cf1, cf2, cf3
         CompletableFuture<Void> cf4 = CompletableFuture.allOf(cf1, cf2, cf3).thenAcceptAsync(System.out::println);
+    }
+
+    @Test
+    public void mixCase() {
+        // cf1 执行完毕后获得结果：1
+        CompletableFuture<Integer> cf1 = CompletableFuture.supplyAsync(() -> 1);
+        // cf2 依赖 cf1：将 cf1 的执行递增 1
+        CompletableFuture<Integer> cf2 = cf1.thenApply(x -> ++x);
+
     }
 }
