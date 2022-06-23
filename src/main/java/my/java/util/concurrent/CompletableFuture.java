@@ -1955,6 +1955,7 @@ public class CompletableFuture<T> implements Future<T>, CompletionStage<T> {
     /**
      * Returns raw result after waiting, or null if interruptible and
      * interrupted.
+     * 在等待后返回原始结果，如果可中断且被中断则返回null。
      */
     private Object waitingGet(boolean interruptible) {
         Signaller q = null;
@@ -2183,8 +2184,8 @@ public class CompletableFuture<T> implements Future<T>, CompletionStage<T> {
      *                               exceptionally or a completion computation threw an exception
      */
     public T join() {
-        Object r;
-        return reportJoin((r = result) == null ? waitingGet(false) : r);
+        Object r = result;
+        return reportJoin(r == null ? waitingGet(false) : r);
     }
 
     /**
